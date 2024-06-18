@@ -24,7 +24,7 @@
 #include "imgui.h"
 #include "InputGeom.h"
 #include "Sample.h"
-#include "Sample_SizeFromPortalEdgeMesh.h"
+#include "Sample_SoloMeshLCM.h"
 #include "Recast.h"
 #include "RecastDebugDraw.h"
 #include "RecastDump.h"
@@ -43,7 +43,7 @@
 
 #include "RecastAlloc.h"
 
-Sample_SizeFromPortalEdgeMesh::Sample_SizeFromPortalEdgeMesh() :
+Sample_SoloMeshLCM::Sample_SoloMeshLCM() :
         m_keepInterResults(true),
         m_totalBuildTimeMs(0),
         m_triareas(0),
@@ -58,12 +58,12 @@ Sample_SizeFromPortalEdgeMesh::Sample_SizeFromPortalEdgeMesh() :
 	setTool(new NavMeshTesterTool);
 }
 
-Sample_SizeFromPortalEdgeMesh::~Sample_SizeFromPortalEdgeMesh()
+Sample_SoloMeshLCM::~Sample_SoloMeshLCM()
 {
 	cleanup();
 }
 
-void Sample_SizeFromPortalEdgeMesh::cleanup()
+void Sample_SoloMeshLCM::cleanup()
 {
 	delete [] m_triareas;
 	m_triareas = 0;
@@ -81,7 +81,7 @@ void Sample_SizeFromPortalEdgeMesh::cleanup()
 	m_navMesh = 0;
 }
 
-void Sample_SizeFromPortalEdgeMesh::handleSettings()
+void Sample_SoloMeshLCM::handleSettings()
 {
 	Sample::handleCommonSettings();
 
@@ -115,7 +115,7 @@ void Sample_SizeFromPortalEdgeMesh::handleSettings()
 	imguiSeparator();
 }
 
-void Sample_SizeFromPortalEdgeMesh::handleTools()
+void Sample_SoloMeshLCM::handleTools()
 {
 	int type = !m_tool ? TOOL_NONE : m_tool->type();
 
@@ -151,7 +151,7 @@ void Sample_SizeFromPortalEdgeMesh::handleTools()
 
 }
 
-void Sample_SizeFromPortalEdgeMesh::handleDebugMode()
+void Sample_SoloMeshLCM::handleDebugMode()
 {
 	// Check which modes are valid.
 	bool valid[MAX_DRAWMODE];
@@ -229,7 +229,7 @@ void Sample_SizeFromPortalEdgeMesh::handleDebugMode()
 	}
 }
 
-void Sample_SizeFromPortalEdgeMesh::handleRender()
+void Sample_SoloMeshLCM::handleRender()
 {
 	if (!m_geom || !m_geom->getMesh())
 		return;
@@ -345,14 +345,14 @@ void Sample_SizeFromPortalEdgeMesh::handleRender()
 	glDepthMask(GL_TRUE);
 }
 
-void Sample_SizeFromPortalEdgeMesh::handleRenderOverlay(double* proj, double* model, int* view)
+void Sample_SoloMeshLCM::handleRenderOverlay(double* proj, double* model, int* view)
 {
 	if (m_tool)
 		m_tool->handleRenderOverlay(proj, model, view);
 	renderOverlayToolStates(proj, model, view);
 }
 
-void Sample_SizeFromPortalEdgeMesh::handleMeshChanged(class InputGeom* geom)
+void Sample_SoloMeshLCM::handleMeshChanged(class InputGeom* geom)
 {
 	Sample::handleMeshChanged(geom);
 
@@ -369,7 +369,7 @@ void Sample_SizeFromPortalEdgeMesh::handleMeshChanged(class InputGeom* geom)
 }
 
 
-bool Sample_SizeFromPortalEdgeMesh::handleBuild()
+bool Sample_SoloMeshLCM::handleBuild()
 {
 	if (!m_geom || !m_geom->getMesh())
 	{
@@ -554,7 +554,7 @@ bool Sample_SizeFromPortalEdgeMesh::handleBuild()
     }
 
     // Partition the walkable surface into simple regions without holes.
-    if (!rcBuildRegionsWithSize(m_ctx, *m_chf, 0, m_cfg.minRegionArea, m_cfg.mergeRegionArea))
+    if (!rcBuildRegionsLCM(m_ctx, *m_chf, 0, m_cfg.minRegionArea, m_cfg.mergeRegionArea))
     {
         m_ctx->log(RC_LOG_ERROR, "buildNavigation: Could not build watershed regions.");
         return false;
@@ -573,7 +573,7 @@ bool Sample_SizeFromPortalEdgeMesh::handleBuild()
 	}
     int* pEdges{nullptr};
     int edgeSize{};
-    if (!rcBuildContoursWithPortals(m_ctx, *m_chf, m_cfg.maxSimplificationError, m_cfg.maxEdgeLen, *m_cset, pEdges, edgeSize)) {
+    if (!rcBuildContoursLCM(m_ctx, *m_chf, m_cfg.maxSimplificationError, m_cfg.maxEdgeLen, *m_cset, pEdges, edgeSize)) {
       m_ctx->log(RC_LOG_ERROR, "buildNavigation: Could not create contours.");
       return false;
     }

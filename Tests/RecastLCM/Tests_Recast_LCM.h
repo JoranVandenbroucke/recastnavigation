@@ -1,85 +1,25 @@
 //
-// Created by joran on 14/12/2023.
+// Copyright (c) 2024.
+// Author: Joran.
 //
-#include <algorithm>
-#include <array>
-#include <cctype>
-#include <cmath>
-#include <cstdlib>
-#include <fstream>
-#include <iostream>
-#include <iterator>
-#include <set>
-#include <sstream>
-#include <string>
-#include <vector>
+
+#pragma once
+#include "Generators.h"
 
 #include <Recast.h>
 #include <RecastAlloc.h>
 
-#include "BuildContext.h"
-#include "Generators.h"
-#include "InputGeom.h"
-
-class InputParser {
-public:
-  InputParser(const int argc, char **argv) {
-    for (int i = 1; i < argc; ++i) {
-      m_tokens.emplace_back(argv[i]);
-      if (m_tokens.back()[0] == '-')
-        for (char &ch : m_tokens.back())
-          ch = static_cast<char>(tolower(ch));
-      else
-        m_tokens.back().erase(std::find(m_tokens.back().begin(), m_tokens.back().end(), '\"'));
-    }
-  }
-
-  const std::string &getCmdOption(const std::string &option) const {
-    const auto &itr = std::find_if(m_tokens.cbegin(), m_tokens.cend(), [option](const std::string &token) {
-      std::stringstream ss{option};
-      std::string s;
-      while (std::getline(ss, s, ';')) {
-        return s == token;
-      }
-      return false;
-    });
-    if (itr != m_tokens.cend() && itr + 1 != m_tokens.cend()) {
-      return *(itr + 1);
-    }
-    static std::string const empty{};
-    return empty;
-  }
-
-  bool cmdOptionExists(const std::string &option) const {
-    const auto &iter = std::find_if(m_tokens.cbegin(), m_tokens.cend(), [option](const std::string &token) {
-      std::stringstream ss{option};
-      std::string s;
-      while (std::getline(ss, s, ';')) {
-        return s == token;
-      }
-      return false;
-    });
-    return iter != m_tokens.end();
-  }
-
-private:
-  std::vector<std::string> m_tokens;
-};
-
-void printOptions() {
-  std::cout << "------------------------------------------------------------------------------------------------" << std::endl;
-  std::cout << "Usage: ./RecastCLI -f <input_file.obj> -o <output_directory> -g <navmesh_generator> [options]" << std::endl;
-  std::cout << "------------------------------------------------------------------------------------------------" << std::endl;
-  std::cout << "Options:" << std::endl;
-  std::cout << "-h;--help\t\tPrint Out Commands and Quit" << std::endl;
-  std::cout << "------------------------------------------------------------------------------------------------" << std::endl;
-  std::cout << "-f;--file\t\tDeclare Input environment (.obj)" << std::endl;
-  std::cout << "-o;--open\t\tDeclare Output directory" << std::endl;
-  std::cout << "------------------------------------------------------------------------------------------------" << std::endl;
-  std::cout << "-cs;--cellsize\t\t\t(optional) cell size (float)" << std::endl;
-  std::cout << "-ar;--agentradius\t\t(optional) agent radius (float)" << std::endl;
-  std::cout << "------------------------------------------------------------------------------------------------" << std::endl;
-}
+#include <algorithm>
+#include <array>
+#include <cmath>
+#include <cstddef>
+#include <cstdint>
+#include <exception>
+#include <fstream>
+#include <span>
+#include <sstream>
+#include <string>
+#include <vector>
 
 // For comparing to rcVector in benchmarks.
 const float g_cellHeight = 0.2f;
@@ -94,7 +34,7 @@ const float g_edgeMaxError = 1.3f;
 const float g_vertsPerPoly = 6.0f;
 const float g_detailSampleDist = 6.0f;
 const float g_detailSampleMaxError = 1.0f;
-const int g_loopCount = 1;
+const int g_loopCount = 100;
 const bool g_filterLedgeSpans = true;
 const bool g_filterWalkableLowHeightSpans = true;
 const bool g_filterLowHangingObstacles = true;
@@ -199,7 +139,6 @@ inline void writeCsvFile(const bool isThesis, const std::string &filePath, const
   if (height < 1e-3f)
     height = 1.f;
   std::ofstream csvFile{filePath + "/Timings.csv", std::ios::out | std::ios::app};
-  csvFile.write(header, sizeof(header)).put('\n');
   for (int i{}; i < g_loopCount; ++i) {
     csvFile << count++ << (isThesis ? ",Thesis," : ",Default,") << environmentName << ',' << gridSize << ',';
     csvFile << (int)(width * height * depth) << ',';
@@ -303,7 +242,7 @@ inline void processBourderEdges(const std::string &input, const std::string &out
       resultEdgesSet.emplace(Edge{{pEdges[ii * 2 + 0], pEdges[ii * 2 + 1]}, {pEdges[i * 2 + 0], pEdges[i * 2 + 1]}});
     } else {
       resultEdgesSet.emplace(Edge{{pEdges[i * 2 + 0], pEdges[i * 2 + 1]}, {pEdges[ii * 2 + 0], pEdges[ii * 2 + 1]}});
-  }
+    }
   }
   rcFree(pEdges);
 
@@ -312,7 +251,6 @@ inline void processBourderEdges(const std::string &input, const std::string &out
   std::copy(referenceEdgesSet.cbegin(), referenceEdgesSet.cend(), std::back_inserter(referenceEdges));
   std::copy(resultEdgesSet.cbegin(), resultEdgesSet.cend(), std::back_inserter(resultEdges));
 
-  system(("mkdir " + output).c_str());
   std::ofstream svg;
   startSvg(svg, output + "/edges_" + name + "_result.svg", config.width, config.height);
   writeSvgLine(svg, resultEdges, "black");
@@ -374,6 +312,7 @@ inline void processBourderEdges(const std::string &input, const std::string &out
             const int halfDiffY = (smallestDiffY1 + smallestDiffY2) / 2;
             return halfDiffX * halfDiffX + halfDiffY * halfDiffY;
           }};
+
       return distance(edge1, edgeA) < distance(edge1, edgeB);
     });
     for (const Edge &edge2 : referenceEdges) {
@@ -404,59 +343,4 @@ inline void processBourderEdges(const std::string &input, const std::string &out
   writeSvgLine(svg, truePositive, "green");
   svg << "<text x=\"5\" y=\"15\" fill=\"black\"> True Positives: " << tp << "    False Positives: " << fp << "    Precision: " << precision << "    Recall: " << recall << "</text>\n";
   endSvg(svg);
-}
-
-int main(const int argc, char *argv[]) {
-  const InputParser parser(argc, argv);
-  if (parser.cmdOptionExists("-h;--help")) {
-    printOptions();
-    return 0;
-  }
-  const std::string &fileName = parser.getCmdOption("-f;--file");
-  const std::string &output = parser.getCmdOption("-o;--output");
-  std::string lcmRef{};
-  if (fileName.empty()) {
-    std::cout << "An input file model is required (-f;--file)" << std::endl;
-    return 1;
-  }
-  if (output.empty()) {
-    std::cout << "An output path required (-o;--output)" << std::endl;
-    return 1;
-  }
-
-  BuildContext context{};
-  InputGeom pGeom{};
-  if (!pGeom.load(&context, fileName)) {
-    context.dumpLog("Geom load log %s:", fileName.c_str());
-    return 1;
-  }
-
-  float cellSize = 0.3f;
-
-  if (parser.cmdOptionExists("-cs;--cellsize"))
-    cellSize = std::stof(parser.getCmdOption("-cs;--cellsize"));
-  if (!parser.cmdOptionExists("-lcmr;--localclearanceminimumrefference")) {
-    return 1;
-  }
-  lcmRef = parser.getCmdOption("-lcmr;--localclearanceminimumrefference");
-
-  rcConfig config{};
-  config.cs = cellSize;
-  config.ch = g_cellHeight;
-  config.walkableSlopeAngle = g_agentMaxSlope;
-  config.walkableHeight = static_cast<int>(std::ceil(g_agentHeight / g_cellHeight));
-  config.walkableClimb = static_cast<int>(std::floor(g_agentMaxClimb / g_cellHeight));
-  config.walkableRadius = static_cast<int>(std::ceil(g_agentRadius / g_cellHeight));
-  config.maxEdgeLen = static_cast<int>(g_edgeMaxLen / cellSize);
-  config.maxSimplificationError = g_edgeMaxError;
-  config.minRegionArea = static_cast<int>(rcSqr(g_regionMinSize));
-  config.mergeRegionArea = static_cast<int>(rcSqr(g_regionMergeSize));
-  config.maxVertsPerPoly = static_cast<int>(g_vertsPerPoly);
-  config.detailSampleDist = cellSize * g_detailSampleDist;
-  config.detailSampleMaxError = g_cellHeight * g_detailSampleMaxError;
-  int *pEdges{nullptr};
-  int edgeCount{};
-  const std::string name{fileName.substr(7, fileName.size() - 11)};
-  generateTimes(output, name, cellSize, context, pGeom, config, pEdges, edgeCount);
-  processBourderEdges(lcmRef, output, name + "_" + std::to_string(static_cast<int>(cellSize * 10)), pGeom, config, pEdges, edgeCount);
 }

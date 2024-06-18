@@ -23,7 +23,7 @@
 #include "DetourNavMesh.h"
 #include "Recast.h"
 
-class Sample_SizeFromPortalEdgeMesh : public Sample
+class Sample_SoloMeshLCM : public Sample
 {
 protected:
 	bool m_keepInterResults;
@@ -64,8 +64,8 @@ protected:
 	void cleanup();
 
 public:
-	Sample_SizeFromPortalEdgeMesh();
-	virtual ~Sample_SizeFromPortalEdgeMesh();
+  Sample_SoloMeshLCM();
+	virtual ~Sample_SoloMeshLCM();
 
 	virtual void handleSettings();
 	virtual void handleTools();
@@ -78,8 +78,8 @@ public:
 
 private:
     // Explicitly disabled copy constructor and copy assignment operator.
-    Sample_SizeFromPortalEdgeMesh(const Sample_SizeFromPortalEdgeMesh&);
-    Sample_SizeFromPortalEdgeMesh& operator=(const Sample_SizeFromPortalEdgeMesh&);
+  Sample_SoloMeshLCM(const Sample_SoloMeshLCM &);
+  Sample_SoloMeshLCM & operator=(const Sample_SoloMeshLCM &);
 };
 
 
